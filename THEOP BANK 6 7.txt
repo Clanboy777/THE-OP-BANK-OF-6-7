@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monopoly Digital Bank V7 (Layered Rewards)</title>
+    <style>
+        /* --- CSS STYLING --- */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f7f9;
+            color: #333;
+        }
+        h1 {
+            color: #9933cc; /* New main color for V7 */
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 1.5fr 1.5fr;
+            gap: 30px;
+            max-width: 1400px;
+            margin: auto;
+        }
+        .column {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .panel {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+        h3 {
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+            margin-top: 0;
+            color: #555;
+        }
+        /* Lists */
+        .list-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px dashed #eee;
+            font-size: 1em;
+        }
+        .list-item:last-child {
+            border-bottom: none;
+        }
+        .balance {
+            font-weight: bold;
+            color: #008000;
+        }
+        .negative-balance {
+            color: #c70000;
+        }
+        .interest-rate {
+            color: #888;
+            font-size: 0.8em;
+            margin-left: 10px;
+        }
+        .card-number {
+            font-family: monospace;
+            font-size: 0.9em;
+            color: #666;
+            margin-left: 10px;
+        }
+        /* Forms and Buttons */
+        .form-group div {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input[type="number"],
+        select,
+        input[type="text"] {
+            width: 90%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #9933cc;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: background-color 0.3s;
+            margin-right: 10px;
+        }
+        button:hover {
+            background-color: #7a1fa2;
+        }
+        /* Log */
+        #transaction-log {
+            max-height: 350px;
+            overflow-y: auto;
+        }
+        .log-entry {
+            border-bottom: 1px solid #eee;
+            padding: 8px 0;
+            font-size: 0.9em;
+            line-height: 1.4;
+        }
+        .log-entry strong {
+            color: #9933cc;
+            font-weight: normal;
+        }
+        .log-entry .description {
+            color: #6c757d;
+        }
+        /* Reward Alert */
+        .reward-alert {
+            background-color: #f3e5f5;
+            color: #4a148c;
+            padding: 10px;
+            border-radius: 4px;
+            border: 1px solid #ce93d8;
+            margin-bottom: 15px;
+            font-weight: bold;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+
+    <h1>✨ Monopoly Digital Bank V7 (Layered Rewards Active)</h1>
+
+
+    <div class="container">
+        <div class="column">
+            <div class="panel">
+                <h3>👥 Player Accounts</h3>
+                <div id="player-list"></div>
+            </div>
+
+
+            <div class="panel">
+                <h3>🏦 Bank Accounts</h3>
+                <div class="list-item" style="border-bottom: 2px solid #9933cc;">
+                    <span>**Main Bank Reserve** (The Central Fund)</span>
+                    <span id="main-bank-reserve-details"></span>
+                </div>
+                <div class="list-item">
+                    <span>**Main Credit Account** (Funds backing all Credit Cards)</span>
+                    <span id="main-credit-details"></span>
+                </div>
+                <h4>Individual Debit Accounts</h4>
+                <div id="debit-account-list"></div>
+            </div>
+
+
+            <div class="panel">
+                <h3>💳 Virtual Cards in Play</h3>
+                <h4>Credit Cards</h4>
+                <div id="credit-card-list"></div>
+                <h4>Debit Cards</h4>
+                <div id="debit-card-list"></div>
+            </div>
+        </div>
+
+
+        <div class="column">
+            <div class="panel">
+                <h3>🛠️ Full Account Management</h3>
+                <div class="form-group">
+                    <button onclick="addCards('credit', 10)">Add 10 Credit Cards</button>
+                    <button onclick="addCards('debit', 10)">Add 10 Debit Cards</button>
+                    <hr style="margin: 20px 0;">
+
+
+                    <h4>✏️ Modify Balance Manually (Add or Subtract Funds)</h4>
+                    <div>
+                        <label for="modify-account">Select Account to Modify:</label>
+                        <select id="modify-account"></select>
+                    </div>
+                    <div>
+                        <label for="new-balance">New Balance ($):</label>
+                        <input type="number" id="new-balance" step="1" placeholder="Enter new final balance (e.g., 2500 or -100)" required>
+                    </div>
+                    <div>
+                        <button onclick="modifyBalance()">Set New Balance</button>
+                    </div>
+
+
+                    <hr style="margin: 20px 0;">
+
+
+                    <h4>Set Interest Rate (%)</h4>
+                    <div>
+                        <label for="interest-account">Select Account:</label>
+                        <select id="interest-account"></select>
+                    </div>
+                    <div>
+                        <label for="new-rate">New Annual Rate (e.g., 5.0 for 5%):</label>
+                        <input type="number" id="new-rate" min="-100" step="0.1" placeholder="Enter new rate (%)" required>
+                    </div>
+                    <div>
+                        <button onclick="setInterestRate()">Set Rate</button>
+                    </div>
+                </div>
+            </div>
+
+
+            <div class="panel">
+                <h3>⭐ Interest Calculation</h3>
+                <p>Select an account and click "Apply Interest" to calculate and add/subtract a single interest period's charge/gain (1 year simple interest).</p>
+                <div class="form-group">
+                    <div>
+                        <label for="apply-interest-account">Select Account:</label>
+                        <select id="apply-interest-account"></select>
+                    </div>
+                    <button onclick="applyInterest()">Apply Interest</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="column">
+            <div class="panel">
+                <div class="reward-alert">
+                    Cash Reward ($50): Next at <span id="next-reward-cash">1</span> (Gap 2)
+                    <br>
+                    Discount Reward ($50 Off): Next at <span id="next-reward-discount">3</span> (Gap 3)
+                    <br>
+                    Total Transactions: <span id="transaction-count">0</span>
+                </div>
+
+
+                <h3>💸 Transaction Calculator</h3>
+                <div class="form-group">
+                    <div>
+                        <label for="source">Source (Payer):</label>
+                        <select id="source"></select>
+                    </div>
+                    <div>
+                        <label for="destination">Destination (Receiver):</label>
+                        <select id="destination"></select>
+                    </div>
+                    <div>
+                        <label for="amount">Amount ($):</label>
+                        <input type="number" id="amount" min="1" step="1" placeholder="e.g., 200" required>
+                    </div>
+                    <div>
+                        <label for="description">Description (Optional):</label>
+                        <input type="text" id="description" placeholder="e.g., Rent on Boardwalk">
+                    </div>
+                    <button onclick="executeTransaction()">Execute Transfer</button>
+                </div>
+            </div>
+
+
+            <div class="panel">
+                <h3>📜 Transaction Log</h3>
+                <div id="transaction-log"></div>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        // --- JAVASCRIPT LOGIC ---
+
+
+        // Helper functions
+        const generateId = () => Math.random().toString(36).substring(2, 9);
+        const generateCardNumber = () => {
+            let number = '';
+            for (let i = 0; i < 16; i++) {
+                number += Math.floor(Math.random() * 10);
+            }
+            return number.match(/.{1,4}/g).join(' ');
+        };
+        const generateCVV = () => Math.floor(Math.random() * 900) + 100;
+        const toFixedMoney = (num) => parseFloat(num.toFixed(2));
+
+
+        // 1. CORE DATA STRUCTURES
+        let players = [
+            { id: generateId(), name: "Player 1 (Car)", balance: 1500, interestRate: 0 },
+            { id: generateId(), name: "Player 2 (Thimble)", balance: 1500, interestRate: 0 },
+            { id: generateId(), name: "Player 3 (Top Hat)", balance: 1500, interestRate: 0 },
+            { id: generateId(), name: "Player 4 (Dog)", balance: 1500, interestRate: 0 },
+        ];
+
+
+        let accounts = {
+            mainBankReserve: { id: 'mainBankReserve', name: 'Main Bank Reserve', balance: 500000, interestRate: 0.0 }, 
+            mainCredit: { id: 'mainCredit', name: 'Main Credit Account', balance: 0, interestRate: 5.0 }, 
+            debit: [], 
+        };
+
+
+        let cards = {
+            credit: [], 
+            debit: [],  
+        };
+
+
+        let transactions = [];
+        let totalTransactions = 0;
+        
+        // --- REWARD MILESTONE TRACKERS ---
+        let nextRewardCash = 1; // Gap of 2 (1, 3, 5, 7...)
+        let nextRewardDiscount = 3; // Gap of 3 (3, 6, 9, 12...)
+        const REWARD_AMOUNT_CASH = 50.00;
+        const REWARD_AMOUNT_DISCOUNT = 50.00;
+        let discountToggle = 'Property Off'; // Alternates between Property Off and Site Off
+
+
+        // 2. CARD & ACCOUNT CREATION/MANAGEMENT (Same as V6)
+
+
+        function addCards(type, count) {
+            for (let i = 0; i < count; i++) {
+                const cardId = generateId();
+                const holderName = `${type === 'credit' ? 'Credit' : 'Debit'} Card Holder ${cards[type].length + 1}`;
+
+
+                if (type === 'credit') {
+                    cards.credit.push({
+                        id: cardId,
+                        type: 'credit',
+                        number: generateCardNumber(),
+                        cvv: generateCVV(),
+                        holderName: holderName,
+                    });
+                } else if (type === 'debit') {
+                    const accountId = generateId();
+                    accounts.debit.push({ 
+                        id: accountId, 
+                        name: `Debit Account #${accounts.debit.length + 1}`, 
+                        balance: 0,
+                        interestRate: 0, 
+                    });
+                    cards.debit.push({
+                        id: cardId,
+                        type: 'debit',
+                        number: generateCardNumber(),
+                        cvv: generateCVV(),
+                        holderName: holderName,
+                        accountId: accountId, 
+                    });
+                }
+            }
+            updateUI();
+        }
+
+
+        // 3. UI UPDATE FUNCTIONS (Updated to reflect new reward trackers)
+
+
+        function renderAccountDetails(acc) {
+            const balanceClass = acc.balance < 0 ? 'negative-balance' : 'balance';
+            return `
+                <span class="${balanceClass}">
+                    $${acc.balance.toLocaleString()}
+                </span>
+                <span class="interest-rate">
+                    Rate: ${acc.interestRate}%
+                </span>
+            `;
+        }
+
+
+        function updatePlayerListUI() {
+            const listElement = document.getElementById('player-list');
+            listElement.innerHTML = players.map(p => `
+                <div class="list-item">
+                    <span>${p.name}</span>
+                    ${renderAccountDetails(p)}
+                </div>
+            `).join('');
+        }
+
+
+        function updateAccountListUI() {
+            document.getElementById('main-bank-reserve-details').innerHTML = renderAccountDetails(accounts.mainBankReserve);
+            document.getElementById('main-credit-details').innerHTML = renderAccountDetails(accounts.mainCredit);
+
+
+            const debitList = document.getElementById('debit-account-list');
+            debitList.innerHTML = accounts.debit.map(acc => `
+                <div class="list-item">
+                    <span>${acc.name}</span>
+                    ${renderAccountDetails(acc)}
+                </div>
+            `).join('');
+        }
+
+
+        function updateCardListUI() {
+            const renderCard = (c, linkedAcc) => `
+                <div class="list-item" style="font-size: 0.9em;">
+                    <span>
+                        **${c.type.toUpperCase()}** - ${c.holderName} 
+                        <span class="card-number">${c.number.slice(-4)}</span>
+                    </span>
+                    <span style="font-style: italic; color: #888;">
+                        Linked to: ${linkedAcc.name}
+                    </span>
+                </div>
+            `;
+
+
+            document.getElementById('credit-card-list').innerHTML = cards.credit.map(c => 
+                renderCard(c, accounts.mainCredit)
+            ).join('');
+
+
+            document.getElementById('debit-card-list').innerHTML = cards.debit.map(c => 
+                renderCard(c, accounts.debit.find(acc => acc.id === c.accountId))
+            ).join('');
+        }
+
+
+        function updateTransactionLogUI() {
+            const logElement = document.getElementById('transaction-log');
+            logElement.innerHTML = transactions.slice().reverse().map(t => `
+                <div class="log-entry">
+                    [${t.time}] <span class="description">${t.description}</span>: 
+                    <strong>${t.sender}</strong> paid <strong>$${t.amount.toLocaleString()}</strong> to <strong>${t.receiver}</strong>.
+                </div>
+            `).join('');
+        }
+        
+        function updateRewardsUI() {
+            document.getElementById('transaction-count').textContent = totalTransactions;
+            document.getElementById('next-reward-cash').textContent = nextRewardCash;
+            document.getElementById('next-reward-discount').textContent = `${nextRewardDiscount} (${discountToggle})`;
+        }
+
+
+        function getAllAccounts() {
+            return [
+                { value: 'p_placeholder', label: '--- Player Accounts ---', disabled: true },
+                ...players.map(p => ({ value: `p_${p.id}`, label: `Player: ${p.name}` })),
+                { value: 'acc_placeholder', label: '--- Bank Accounts ---', disabled: true },
+                { value: `acc_${accounts.mainBankReserve.id}`, label: accounts.mainBankReserve.name },
+                { value: `acc_${accounts.mainCredit.id}`, label: accounts.mainCredit.name },
+                ...accounts.debit.map(acc => ({ value: `acc_${acc.id}`, label: acc.name })),
+            ];
+        }
+
+
+        function populateSelects() {
+            const selects = ['source', 'destination', 'modify-account', 'interest-account', 'apply-interest-account'];
+            
+            const bankOption = { value: 'bank', label: accounts.mainBankReserve.name }; 
+            
+            const playerOptions = players.map(p => ({ value: `p_${p.id}`, label: `Player: ${p.name}` }));
+            const creditCardOptions = cards.credit.map(c => ({ value: `cc_${c.id}`, label: `Credit Card: ${c.holderName} (${c.number.slice(-4)})` }));
+            const debitCardOptions = cards.debit.map(c => ({ value: `dc_${c.id}`, label: `Debit Card: ${c.holderName} (${c.number.slice(-4)})` }));
+            const allTransactionOptions = [bankOption, ...playerOptions, ...creditCardOptions, ...debitCardOptions];
+            
+            const accountManagementOptions = getAllAccounts();
+
+
+            document.getElementById('source').innerHTML = document.getElementById('destination').innerHTML = 
+                allTransactionOptions.map(opt => `<option value="${opt.value}">${opt.label}</option>`).join('');
+
+
+            const manageOptionsHTML = accountManagementOptions.map(opt => 
+                `<option value="${opt.value}" ${opt.disabled ? 'disabled' : ''}>${opt.label}</option>`
+            ).join('');
+            selects.slice(2).forEach(id => document.getElementById(id).innerHTML = manageOptionsHTML);
+
+
+            document.getElementById('source').value = 'bank'; 
+            document.getElementById('destination').value = 'p_' + players[0].id;
+        }
+
+
+        function updateUI() {
+            updatePlayerListUI();
+            updateAccountListUI();
+            updateCardListUI();
+            populateSelects(); 
+            updateTransactionLogUI();
+            updateRewardsUI();
+        }
+
+
+        // 4. TRANSACTION LOGIC
+
+
+        function getTransactionObject(id) {
+            if (id === 'bank') {
+                return { 
+                    id: 'bank', 
+                    type: 'bank', 
+                    account: accounts.mainBankReserve, 
+                    name: accounts.mainBankReserve.name 
+                };
+            }
+
+
+            const [typeCode, objId] = id.split('_');
+
+
+            if (typeCode === 'p') return players.find(p => p.id === objId); 
+
+
+            if (typeCode === 'cc') { 
+                const card = cards.credit.find(c => c.id === objId);
+                return { ...card, account: accounts.mainCredit, name: `CC: ${card.holderName}` };
+            }
+
+
+            if (typeCode === 'dc') { 
+                const card = cards.debit.find(c => c.id === objId);
+                const account = accounts.debit.find(a => a.id === card.accountId);
+                return { ...card, account: account, name: `DC: ${card.holderName}` };
+            }
+            return null;
+        }
+
+
+        // NEW: Function to handle the cash reward payment
+        function processCashReward(receiverAccount, receiverName) {
+            receiverAccount.balance += REWARD_AMOUNT_CASH;
+            nextRewardCash += 2; 
+
+
+            accounts.mainBankReserve.balance -= REWARD_AMOUNT_CASH; 
+
+
+            transactions.push({
+                time: new Date().toLocaleTimeString(),
+                sender: `${accounts.mainBankReserve.name} (Reward System)`,
+                receiver: receiverName,
+                amount: REWARD_AMOUNT_CASH,
+                description: `*** CASH REWARD! *** Bonus $${REWARD_AMOUNT_CASH.toLocaleString()} for transaction #${totalTransactions}`,
+            });
+            return `Cash Reward ($${REWARD_AMOUNT_CASH.toLocaleString()}) Paid.`;
+        }
+
+
+        // NEW: Function to handle the discount reward
+        function processDiscountReward(receiverName) {
+            const rewardType = discountToggle;
+            const rewardValue = REWARD_AMOUNT_DISCOUNT;
+            
+            // Toggle for the next time
+            discountToggle = (rewardType === 'Property Off') ? 'Site Off' : 'Property Off';
+            nextRewardDiscount += 3;
+
+
+            transactions.push({
+                time: new Date().toLocaleTimeString(),
+                sender: `The Bank`,
+                receiver: receiverName,
+                amount: 0, // No direct cash transfer, just a notification
+                description: `*** DISCOUNT REWARD! *** ${rewardType} ($${rewardValue.toLocaleString()} value) awarded to the receiver for transaction #${totalTransactions}`,
+            });
+            return `${rewardType} ($${rewardValue.toLocaleString()} Off) Awarded.`;
+        }
+
+
+
+
+        function executeTransaction() {
+            const sourceId = document.getElementById('source').value;
+            const destinationId = document.getElementById('destination').value;
+            const amountInput = document.getElementById('amount').value;
+            let description = document.getElementById('description').value || 'General Transfer';
+            
+            const amount = parseFloat(amountInput);
+
+
+            if (isNaN(amount) || amount <= 0) {
+                alert("Please enter a valid amount greater than zero.");
+                return;
+            }
+            if (sourceId === destinationId) {
+                alert("Source and Destination must be different.");
+                return;
+            }
+
+
+            const sourceObj = getTransactionObject(sourceId);
+            const destinationObj = getTransactionObject(destinationId);
+
+
+            let sourceAccount = sourceObj.account || sourceObj;
+            let destinationAccount = destinationObj.account || destinationObj;
+            
+            if (sourceAccount.balance < amount) {
+                 alert(`${sourceObj.name} (Account: ${sourceAccount.name}) does not have enough funds. Current Balance: $${sourceAccount.balance.toLocaleString()}`);
+                return;
+            }
+
+
+            // 1. Perform the transfer
+            sourceAccount.balance -= amount;
+            destinationAccount.balance += amount;
+
+
+            // 2. Record the base transaction
+            transactions.push({
+                time: new Date().toLocaleTimeString(),
+                sender: sourceObj.name,
+                receiver: destinationObj.name,
+                amount: amount,
+                description: description,
+            });
+
+
+            // 3. Update total transaction count
+            totalTransactions++;
+            
+            let alertMessage = `Transaction successful: $${amount.toLocaleString()} transferred.`;
+            
+            // 4. Check for reward milestones
+            const isCashReward = (totalTransactions === nextRewardCash);
+            const isDiscountReward = (totalTransactions === nextRewardDiscount);
+
+
+            if (isCashReward) {
+                alertMessage += `\n\n🎉 ${processCashReward(destinationAccount, destinationObj.name)}`;
+            }
+
+
+            if (isDiscountReward) {
+                alertMessage += `\n\n🎁 ${processDiscountReward(destinationObj.name)}`;
+            }
+            
+            if (isCashReward || isDiscountReward) {
+                alert(alertMessage);
+            }
+
+
+            updateUI();
+            document.getElementById('amount').value = '';
+            document.getElementById('description').value = '';
+        }
+
+
+        // 5. ACCOUNT MODIFICATION LOGIC (Same as V6)
+
+
+        function getEditableAccount(id) {
+            if (id.startsWith('p_')) return players.find(p => p.id === id.substring(2));
+            if (id.startsWith('acc_')) {
+                const accId = id.substring(4);
+                if (accId === accounts.mainCredit.id) return accounts.mainCredit;
+                if (accId === accounts.mainBankReserve.id) return accounts.mainBankReserve; 
+                return accounts.debit.find(acc => acc.id === accId);
+            }
+            return null;
+        }
+
+
+        function modifyBalance() {
+            const accountId = document.getElementById('modify-account').value;
+            const newBalanceInput = document.getElementById('new-balance').value;
+            const newBalance = parseFloat(newBalanceInput);
+
+
+            if (isNaN(newBalance)) {
+                alert("Please enter a valid number for the new balance.");
+                return;
+            }
+
+
+            const account = getEditableAccount(accountId);
+
+
+            if (account) {
+                const oldBalance = account.balance;
+                account.balance = newBalance;
+
+
+                transactions.push({
+                    time: new Date().toLocaleTimeString(),
+                    sender: 'BANK ADMIN',
+                    receiver: account.name,
+                    amount: toFixedMoney(newBalance - oldBalance),
+                    description: `MANUAL BALANCE ADJUSTMENT: from $${oldBalance.toLocaleString()} to $${newBalance.toLocaleString()}`,
+                });
+
+
+                alert(`${account.name} balance successfully set to $${newBalance.toLocaleString()}`);
+                document.getElementById('new-balance').value = '';
+                updateUI();
+            } else {
+                alert("Selected account not found.");
+            }
+        }
+        
+        // 6. INTEREST LOGIC (Same as V6)
+
+
+        function setInterestRate() {
+            const accountId = document.getElementById('interest-account').value;
+            const newRateInput = document.getElementById('new-rate').value;
+            const newRate = parseFloat(newRateInput);
+
+
+            if (isNaN(newRate)) {
+                alert("Please enter a valid number for the interest rate.");
+                return;
+            }
+
+
+            const account = getEditableAccount(accountId);
+            if (account) {
+                account.interestRate = newRate;
+                alert(`${account.name} interest rate set to ${newRate}%`);
+                updateUI();
+            }
+        }
+
+
+        function applyInterest() {
+            const accountId = document.getElementById('apply-interest-account').value;
+            const account = getEditableAccount(accountId);
+
+
+            if (!account) {
+                alert("Please select a valid account.");
+                return;
+            }
+
+
+            const principal = account.balance;
+            const rate = account.interestRate / 100;
+            
+            const interestAmount = toFixedMoney(principal * rate * 1);
+            
+            if (interestAmount === 0) {
+                alert(`Interest amount is $0.00 (Balance: $${principal}, Rate: ${account.interestRate}%)`);
+                return;
+            }
+            
+            const reserve = accounts.mainBankReserve;
+
+
+            if (interestAmount > 0 && reserve.balance < interestAmount) {
+                alert(`Cannot pay interest! The ${reserve.name} only has $${reserve.balance.toLocaleString()} and needs $${interestAmount.toLocaleString()}.`);
+                return;
+            }
+
+
+            account.balance += interestAmount;
+            reserve.balance -= interestAmount;
+
+
+            const type = interestAmount < 0 ? 'Interest Charge' : 'Interest Gain';
+            const sender = interestAmount < 0 ? account.name : reserve.name;
+            const receiver = interestAmount < 0 ? reserve.name : account.name;
+
+
+            transactions.push({
+                time: new Date().toLocaleTimeString(),
+                sender: sender,
+                receiver: receiver,
+                amount: Math.abs(interestAmount),
+                description: `${type} applied (${account.interestRate}% annual rate)`,
+            });
+
+
+            alert(`${type} of $${Math.abs(interestAmount).toLocaleString()} applied to ${account.name}. New Balance: $${account.balance.toLocaleString()}`);
+            updateUI();
+        }
+
+
+
+
+        // INITIALIZATION
+        window.onload = () => {
+            addCards('credit', 10);
+            addCards('debit', 10);
+
+
+            const initialMoney = 1500 * players.length;
+            accounts.mainBankReserve.balance -= initialMoney;
+
+
+            transactions.push({
+                time: new Date().toLocaleTimeString(),
+                sender: accounts.mainBankReserve.name,
+                receiver: 'All Players',
+                amount: initialMoney,
+                description: 'Game Start: Initial $1500 to each player',
+            });
+            
+            updateUI();
+        };
+
+
+    </script>
+
+
+</body>
+</html>
+
